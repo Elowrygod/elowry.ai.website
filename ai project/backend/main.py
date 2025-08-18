@@ -1,21 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
+import numpy as np
+import tensorflow as tf
+import os
+
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+MODEL_DIR = "ssd_mobilenet_v2_coco/saved_model"
+model = tf.saved_model.load(str(MODEL_DIR))
+infer = model.signatures['serving_default']
+
+def run_inference(image: np.ndarray) -> Dict[str, Any]:
+    input_tenso = tf.convert_to_tensor(image)
+    input_tenso = input_tenso[tf.newaxis, ...] 
+
+    detection = infer(input_tenso)
+
+    return detection
 
 app = FastAPI()
+
+@app.post
+async def prediction(file: UploadFile = File(...)) -> JSONResponse:
 
 @app.get('/')
 async def get_zapros():
     return {"hellow: world"}
-
-items =  {
-    1: {"item1":" 1"},
-    2: {"item2":" 2"},
-    3: {"item3":" 3"},   
-}
-
-@app.get("/item/{item_id}")
-def get_item(item_id: int):
-    item = items.get(item_id)
-
-    if item is None:
-        return {"error"}, 404
-    return item
