@@ -1,3 +1,4 @@
+import cv2
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 import numpy as np
@@ -21,6 +22,14 @@ app = FastAPI()
 
 @app.post
 async def prediction(file: UploadFile = File(...)) -> JSONResponse:
+    contents = await file.read()
+    image = np.array(cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR))
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    detections = run_inference(image_rgb)
+
+    num_detection = int(detections.pop('num_detection'))
+    detections = {key: value[0, :num_detection].numpy() for key, value in detections.items()}
 
 @app.get('/')
 async def get_zapros():
